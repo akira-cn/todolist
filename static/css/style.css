@@ -7,11 +7,7 @@
 
 body {
   background: #edf0f1;
-  padding: 80px 0 0 0;
-}
-
-svg {
-  fill: none;
+  padding-top: 80px;
 }
 
 header {
@@ -50,8 +46,10 @@ header input::placeholder {
 }
 
 header button {
-  width: 50px;
-  height: 50px;
+  width: 16px;
+  height: 16px;
+  padding: 17px;
+  box-sizing: content-box;
   position:absolute;
   top:15px;
   right:15px;
@@ -64,24 +62,11 @@ header button {
   cursor: pointer;
 }
 
-header button svg {
-  width: 16px;
-  height: 16px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin: -8px 0 0 -8px;
-}
-
-.container {
+ul.todolist {
   width: 100%;
   max-width: 800px;
   padding: 15px;
   margin: auto;
-}
-
-ul.todolist {
-  width: 100%;
   position: relative;
 }
 
@@ -103,23 +88,21 @@ ul.todolist li:last-of-type {
   margin: 0;
 }
 
-ul.todolist .buttons {
-  width: 100px;
-  height: 50px;
+ul.todolist button {
   position: absolute;
   top: 0;
   right: 0;
-}
-
-ul.todolist button {
   width: 50px;
   height: 50px;
   background: none;
-  position: relative;
   border: 0px;
   box-shadow: none;
   outline: none;
   cursor: pointer;
+}
+
+ul.todolist button.remove {
+  right: 50px;
 }
 
 ul.todolist button:last-of-type:before {
@@ -169,11 +152,11 @@ ul.todolist button.complete:hover svg {
 }
 
 ul.todolist button.complete:hover svg path,
-li.completed .buttons button.complete svg path {
+ul.todolist li.completed button.complete svg path {
   fill: #fff;
 }
 
-li.completed button.complete svg {
+ul.todolist li.completed button.complete svg {
   background: #25b99a;
   border: 0px;
 }
@@ -190,6 +173,7 @@ ul.todolist li.todo + li.completed::before {
   text-align: center;
   font-size: 12px;
   color: #aaa;
+  white-space: nowrap;
 }
 
 ul.todolist:empty::before {
@@ -198,7 +182,7 @@ ul.todolist:empty::before {
 }
 
 ul.todolist:empty::after {
-  top: 50px;
+  top: 70px;
   border-top: solid 1px #d8e5e0;
   content: 'You have yet to complete any tasks.';
 }
