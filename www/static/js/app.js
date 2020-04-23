@@ -1,4 +1,4 @@
-function addItem(list, text, state = 'todo') {
+function addItem(id, list, text, state = 'todo') {
   const removeSVG = `
     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 22 22" style="enable-background:new 0 0 22 22;" xml:space="preserve">
       <g>
@@ -22,12 +22,17 @@ function addItem(list, text, state = 'todo') {
   item.innerHTML = `${text}<button class="remove">${removeSVG}</button><button class="complete">${completeSVG}</button>`;
   list.insertBefore(item, list.children[0]);
 
+  item.dataset.id = id;
+
   const completeBtn = item.querySelector('button.complete');
 
   completeBtn.addEventListener('click', () => {
+    const id = item.dataset.id;
     if(item.className === 'todo') {
+      updateItem(id, 1);
       completeItem(item);
     } else {
+      updateItem(id, 0);
       uncompleteItem(item);
     }
   });
@@ -35,10 +40,9 @@ function addItem(list, text, state = 'todo') {
   const removeBtn = item.querySelector('button.remove');
 
   removeBtn.addEventListener('click', () => {
+    updateItem(id, 2);
     removeItem(item);
   });
-
-  saveItems(list);
 
   return item;
 }
@@ -52,53 +56,65 @@ function completeItem(item) {
     parent.appendChild(item);
   }
   item.className = 'completed';
-
-  saveItems(parent);
 }
 
 function uncompleteItem(item) {
   const parent = item.parentNode;
   parent.insertBefore(item, parent.children[0]);
   item.className = 'todo';
-
-  saveItems(parent);
 }
 
 function removeItem(item) {
   const parent = item.parentNode;
   parent.removeChild(item);
-
-  saveItems(parent);
 }
 
-function saveItems(list, storageKey = 'todolist') {
-  const items = Array.from(list.querySelectorAll('li'));
-  const data = items.map((item) => {
-    return {state: item.className, text: item.innerText};
-  });
-  localStorage.setItem(storageKey, JSON.stringify(data));
+const states = ['todo', 'completed'];
+
+async function updateItem(id, state) {
+  const result = await (await fetch('/update', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `id=${id}&state=${state}`,
+  })).json();
+
+  return result;
 }
 
-function loadItems(list, storageKey = 'todolist') {
-  let data = localStorage.getItem(storageKey);
-  if(data) {
-    data = JSON.parse(data).reverse();
-  } else {
-    data = [];
-  }
-  data.forEach(({state, text}) => addItem(list, text, state));
+async function saveItem(text) {
+  const result = await (await fetch('/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `text=${text}&state=0`,
+  })).json();
+
+  return result;
+}
+
+async function loadItems(list) {
+  const {data} = await (await fetch('/list')).json();
+  data.forEach(({id, state, text}) => addItem(id, list, text, states[state]));
 }
 
 const list = document.querySelector('ul.todolist');
 const addItemBtn = document.getElementById('addItem');
 const inputText = document.getElementById('itemText');
 
-addItemBtn.addEventListener('click', () => {
+addItemBtn.addEventListener('click', async () => {
   const text = inputText.value;
   if(text) {
-    addItem(list, text);
-    inputText.value = '';
-    inputText.focus();
+    const result = await saveItem(text);
+    if(!result.err) {
+      addItem(result.data.lastID, list, text);
+      inputText.value = '';
+      inputText.focus();
+    } else {
+      throw new Error(result.err);
+    }
   }
 });
 
