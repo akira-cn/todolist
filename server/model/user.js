@@ -1,18 +1,16 @@
 const crypto = require('crypto');
 
-const {getSession, setSession} = require('./session');
+const {setSession} = require('./session');
+
+const sessionName = 'userInfo';
 
 async function login(database, ctx, {name, passwd}) {
-  let userInfo = await getSession(database, ctx, name);
-  if(userInfo) {
-    return userInfo;
-  }
-  userInfo = await database.get('SELECT * FROM user WHERE name = ?', name);
+  const userInfo = await database.get('SELECT * FROM user WHERE name = ?', name);
   const salt = 'xypte';
   const hash = crypto.createHash('sha256').update(`${salt}${passwd}`, 'utf8').digest().toString('hex');
   if(userInfo && hash === userInfo.password) {
     const data = {id: userInfo.id, name: userInfo.name};
-    setSession(database, ctx, name, data);
+    setSession(database, ctx, sessionName, data);
     return data;
   }
   return null;
