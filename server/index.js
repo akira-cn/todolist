@@ -21,6 +21,9 @@ app.use(async ({req}, next) => {
 const param = require('./aspect/param');
 app.use(param);
 
+const cookie = require('./aspect/cookie');
+app.use(cookie);
+
 app.use(async (ctx, next) => {
   if(!db) {
     db = await open({
@@ -54,6 +57,15 @@ app.use(router.post('/update', async ({database, params, res}, next) => {
   const {updateTask} = require('./model/todolist');
   const result = await updateTask(database, params);
   res.body = result;
+  await next();
+}));
+
+app.use(router.post('/login', async (ctx, next) => {
+  const {database, params, res} = ctx;
+  res.setHeader('Content-Type', 'application/json');
+  const {login} = require('./model/user');
+  const result = await login(database, ctx, params);
+  res.body = result || {err: 'invalid user'};
   await next();
 }));
 
