@@ -62,6 +62,7 @@ header button {
   cursor: pointer;
 }
 
+form,
 ul.todolist {
   width: 100%;
   max-width: 800px;

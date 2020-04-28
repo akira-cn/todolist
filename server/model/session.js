@@ -14,21 +14,31 @@ async function getSession(database, ctx, name) {
 }
 
 async function setSession(database, ctx, name, data) {
-  const res = ctx.res;
-  let key = ctx.cookies[sessionKey];
-  if(!key) { // 如果cookie不存在，重新生成一个key
-    key = Math.random().toString(36).slice(2);
-  }
-  res.setHeader('Set-Cookie', `interceptor_js=${key}; Max-Age=${7 * 86400}`); // 过期时间为一周
   try {
-    const result = await database.run(`INSERT INTO session(key, name, value, created, expires)
-      VALUES (?, ?, ?, ?, ?)`,
-    key,
-    name,
-    JSON.stringify(data),
-    Date.now(),
-    Date.now() + 7 * 86400);
-    return {err: '', result};
+    const key = ctx.cookies[sessionKey];
+    if(key) {
+      let result = await database.get('SELECT id FROM session WHERE key = ? AND name = ?', key, name);
+      if(!result) {
+        // 如果result不存在，那么插入这个session
+        result = await database.run(`INSERT INTO session(key, name, value, created, expires)
+          VALUES (?, ?, ?, ?, ?)`,
+        key,
+        name,
+        JSON.stringify(data),
+        Date.now(),
+        Date.now() + 7 * 86400 * 1000);
+      } else {
+        // 否则更新这个session
+        result = await database.run('UPDATE session SET value = ?, created = ?, expires = ? WHERE key = ? AND name = ?',
+          JSON.stringify(data),
+          Date.now(),
+          Date.now() + 7 * 86400 * 1000,
+          key,
+          name);
+      }
+      return {err: '', result};
+    }
+    throw new Error('invalid cookie');
   } catch (ex) {
     return {err: ex.message};
   }

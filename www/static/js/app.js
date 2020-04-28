@@ -96,8 +96,12 @@ async function saveItem(text) {
 }
 
 async function loadItems(list) {
-  const {data} = await (await fetch('/list')).json();
-  data.forEach(({id, state, text}) => addItem(id, list, text, states[state]));
+  const {err, data} = await (await fetch('/list')).json();
+  if(err) {
+    window.location.replace('/login.html');
+  } else {
+    data.forEach(({id, state, text}) => addItem(id, list, text, states[state]));
+  }
 }
 
 const list = document.querySelector('ul.todolist');

@@ -36,19 +36,48 @@ app.use(async (ctx, next) => {
   await next();
 });
 
-app.use(router.get('/list', async ({database, route, res}, next) => {
+async function checkLogin(ctx) {
+  const {getSession} = require('./model/session');
+  const userInfo = await getSession(ctx.database, ctx, 'userInfo');
+  ctx.userInfo = userInfo;
+  return ctx.userInfo;
+}
+
+app.use(async ({cookies, res}, next) => {
+  let id = cookies.interceptor_js;
+  if(!id) {
+    id = Math.random().toString(36).slice(2);
+  }
+  res.setHeader('Set-Cookie', `interceptor_js=${id}; Path=/; Max-Age=${7 * 86400}`); // 设置cookie的有效时长一周
+  await next();
+});
+
+app.use(router.get('/list', async (ctx, next) => {
+  const {database, res} = ctx;
+  const userInfo = await checkLogin(ctx);
   res.setHeader('Content-Type', 'application/json');
-  const {getList} = require('./model/todolist');
-  const result = await getList(database);
-  res.body = {data: result};
+  if(userInfo) {
+    const {getList} = require('./model/todolist');
+    const result = await getList(database, userInfo);
+    res.body = {data: result};
+  } else {
+    res.body = {err: 'not login'};
+  }
   await next();
 }));
 
-app.use(router.post('/add', async ({database, params, res}, next) => {
+app.use(router.post('/add', async (ctx, next) => {
+  const {database, params, res} = ctx;
+  const userInfo = await checkLogin(ctx);
   res.setHeader('Content-Type', 'application/json');
-  const {addTask} = require('./model/todolist');
-  const result = await addTask(database, params);
-  res.body = result;
+  if(userInfo) {
+    const {addTask} = require('./model/todolist');
+    const result = await addTask(database, userInfo, params);
+    res.body = result;
+    await next();
+  } else {
+    res.body = {err: 'not login'};
+  }
   await next();
 }));
 
@@ -62,10 +91,14 @@ app.use(router.post('/update', async ({database, params, res}, next) => {
 
 app.use(router.post('/login', async (ctx, next) => {
   const {database, params, res} = ctx;
-  res.setHeader('Content-Type', 'application/json');
   const {login} = require('./model/user');
   const result = await login(database, ctx, params);
-  res.body = result || {err: 'invalid user'};
+  res.statusCode = 302;
+  if(!result) { // 登录失败，跳转到login继续登录
+    res.setHeader('Location', '/login.html');
+  } else {
+    res.setHeader('Location', '/'); // 成功，跳转到 index
+  }
   await next();
 }));
 
